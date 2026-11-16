@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#07152f">
+<meta name="description" content="MAGNUS NSAKA ATTAQUE — jeu d'arcade 2D d'action et d'aventure au Lualaba.">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./assets/icon-192.png">
+<title>MAGNUS NSAKA ATTAQUE</title>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#030a19;color:#fff;font-family:system-ui,Arial,sans-serif;touch-action:none}
+body{display:grid;place-items:center;background:radial-gradient(ellipse at 50% 0%,#164b88,#030a19 72%)}
+#shell{width:min(100vw,1280px);padding:8px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}.brand{font-weight:1000;letter-spacing:.06em;color:#ffda48;text-shadow:0 2px #a32a16;font-size:clamp(13px,2vw,22px)}.hint{font-size:11px;color:#c7ddff;text-align:right}
+#stage{position:relative;width:100%;aspect-ratio:16/9;overflow:hidden;border:2px solid #37c5ff;border-radius:14px;box-shadow:0 0 30px #0077d777;background:#102c50}
+canvas{display:block;width:100%;height:100%;image-rendering:high-quality}
+#overlay{position:absolute;inset:0;display:grid;place-items:center;background:linear-gradient(110deg,#03132beF,#051a38d9);padding:16px;text-align:center}
+.panel{width:min(92%,650px);max-height:95%;overflow:auto}.logo{width:min(82%,480px);max-height:175px;object-fit:contain;filter:drop-shadow(0 6px 12px #000)}.panel p{color:#d5e8ff;line-height:1.45;font-size:clamp(12px,1.8vw,16px)}.gold{color:#ffdc54}.btn{border:2px solid #ffe77d;border-radius:12px;padding:12px 22px;background:linear-gradient(#ffe05b,#f27b13);color:#1b1830;font-weight:1000;font-size:16px;box-shadow:0 5px #853a17;cursor:pointer}
+.sub{background:#123d6d;color:white;border-color:#58caff;box-shadow:0 4px #06152c;margin-left:7px}
+#touch{display:none;justify-content:space-between;align-items:center;padding:8px 4px;gap:8px}.cluster{display:flex;gap:6px;align-items:center}.pad{display:grid;grid-template-columns:46px 46px 46px;grid-template-rows:42px 42px;gap:3px}.pad button:nth-child(1){grid-column:1;grid-row:2}.pad button:nth-child(2){grid-column:2;grid-row:1}.pad button:nth-child(3){grid-column:2;grid-row:2}.pad button:nth-child(4){grid-column:3;grid-row:2}
+.ctrl{border:2px solid #67d5ff;background:linear-gradient(#1462a6,#09264e);color:white;border-radius:12px;font-weight:1000;font-size:18px;min-width:48px;min-height:44px;padding:5px;box-shadow:0 3px #03152b;touch-action:none}.act{min-width:58px;min-height:54px;border-color:#ffcf59;background:linear-gradient(#f9a52d,#b92a20)}.act2{border-color:#7ce4ff;background:linear-gradient(#238fe0,#123e91)}
+@media(max-width:760px){#shell{padding:3px}.top{margin-bottom:3px}.hint{font-size:9px}#touch{display:flex}.ctrl{min-width:42px;min-height:40px}.pad{grid-template-columns:39px 39px 39px;grid-template-rows:35px 35px}.act{min-width:48px;min-height:48px}}
+@media(orientation:portrait) and (max-width:760px){#shell:before{content:"Tourne ton téléphone en mode paysage pour jouer";display:block;text-align:center;color:#ffe06a;font-weight:900;padding:8px;font-size:13px}}
+</style></head>
+<body><main id="shell">
+<div class="top"><div class="brand">⚡ MAGNUS NSAKA ATTAQUE</div><div class="hint">← → courir · ↑ / ESPACE sauter · X tirer · C grenade · P pause</div></div>
+<div id="stage"><canvas id="game" width="960" height="540" aria-label="Jeu MAGNUS NSAKA ATTAQUE"></canvas>
+<div id="overlay"><div class="panel">
+<img class="logo" src="./assets/logo-magnus.png" alt="Logo Magnus Nsaka Attaque">
+<p><b class="gold">LE HÉROS DU LUALABA</b><br>Traverse 5 zones, protège les installations minières et affronte les boss mécaniques. Orion t'accompagne dans cette aventure d'arcade 2D !</p>
+<p>Clavier : ← →, ESPACE, X, C · Android : commandes tactiles sous l'écran.</p>
+<button class="btn" id="start">COMMENCER LA MISSION</button><button class="btn sub" id="how">COMMANDES</button>
+<div id="extra" style="display:none;color:#d5e8ff;font-size:13px;margin-top:8px">Déplacement : gauche/droite · Saut : bouton ↑ · Tir : bouton TIR · Grenade : bouton BOMBE · Pause : P. Ramasse les étoiles, les trousses et les bonus. Les ennemis sont fictifs et les combats restent non graphiques.</div>
+</div></div></div>
+<div id="touch">
+ <div class="cluster"><div class="pad"><button class="ctrl" data-key="ArrowLeft">◀</button><button class="ctrl" data-key="ArrowUp">▲</button><button class="ctrl" data-key="ArrowDown">▼</button><button class="ctrl" data-key="ArrowRight">▶</button></div></div>
+ <div class="cluster"><button class="ctrl act2" data-key="KeyC">BOMBE</button><button class="ctrl act" data-key="KeyX">TIR</button><button class="ctrl act2" data-key="Space">SAUT</button></div>
+</div>
+</main>
+<script>
+(()=>{'use strict';
+const cv=document.getElementById('game'),ctx=cv.getContext('2d'),W=960,H=540,FLOOR=442,overlay=document.getElementById('overlay');
+const keys={},touchKeys={};let state='menu',tick=0,score=0,coins=0,zone=1,zoneStartScore=0,shots=[],enemyShots=[],enemies=[],items=[],particles=[],grenades=[],boss=null,cam=0,spawnTick=0,shake=0,high=Number(localStorage.getItem('mn_high')||0),musicOn=true,audio=null;
+const zones=[['KOLWEZI — CARRIÈRE','mine'],['ROUTE DES CONVOYEURS','road'],['FORÊT DU LUALABA','forest'],['COMPLEXE INDUSTRIEL','factory'],['FORTERESSE MÉCANIQUE','fort']];
+let hero,orion;
+const rand=(a,b)=>a+Math.random()*(b-a),clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+function snd(f=440,d=.07,type='square',vol=.025){try{audio=audio||new(window.AudioContext||window.webkitAudioContext)();let o=audio.createOscillator(),g=audio.createGain();o.type=type;o.frequency.value=f;g.gain.value=vol;o.connect(g);g.connect(audio.destination);o.start();g.gain.exponentialRampToValueAtTime(.001,audio.currentTime+d);o.stop(audio.currentTime+d)}catch(e){}}
+function init(){tick=0;score=0;coins=0;zone=1;zoneStartScore=0;shots=[];enemyShots=[];enemies=[];items=[];particles=[];grenades=[];boss=null;cam=0;spawnTick=0;shake=0;hero={x:115,y:FLOOR-86,w:54,h:86,vx:0,vy:0,face:1,hp:7,maxHp:7,ground:true,cool:0,inv:0,gren:5,weapon:1,dash:0,anim:0};orion={x:55,y:FLOOR-42};}
+function rect(x,y,w,h,col){ctx.fillStyle=col;ctx.fillRect(x|0,y|0,w|0,h|0)}
+function text(s,x,y,size,color='#fff',align='left'){ctx.font=`900 ${size}px system-ui,Arial`;ctx.textAlign=align;ctx.lineWidth=4;ctx.strokeStyle='#07152d';ctx.strokeText(s,x,y);ctx.fillStyle=color;ctx.fillText(s,x,y)}
+function line(x1,y1,x2,y2,color,width=2){ctx.strokeStyle=color;ctx.lineWidth=width;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke()}
+function burst(x,y,col='#ffb62e',n=14){for(let i=0;i<n;i++)particles.push({x,y,vx:rand(-4,4),vy:rand(-5,2),life:rand(16,32),col,size:rand(2,6)})}
+function bg(){
+ const sky=ctx.createLinearGradient(0,0,0,H);sky.addColorStop(0,['#1685d6','#347fc4','#4b9cce','#273f6c','#142d50'][zone-1]);sky.addColorStop(1,'#e9a14a');rect(0,0,W,H,'#16395e');ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);
+ // far mountains / mine landscape
+ for(let i=0;i<7;i++){let x=((i*210-cam*.18)%1500+1500)%1500-170;ctx.fillStyle=zone===3?'#245a45':'#536b78';ctx.beginPath();ctx.moveTo(x,330);ctx.lineTo(x+95,115+(i%3)*27);ctx.lineTo(x+205,330);ctx.fill()}
+ // clouds
+ for(let i=0;i<6;i++){let x=((i*240-cam*.12)%1200+1200)%1200-100;ctx.fillStyle='#ffffff28';ctx.beginPath();ctx.ellipse(x,90+(i%2)*42,65,17,0,0,Math.PI*2);ctx.fill()}
+ // industrial structures
+ for(let i=0;i<6;i++){let x=((i*230-cam*.55)%1450+1450)%1450-180;rect(x,245,130,95,'#344b5c');rect(x+8,253,114,12,'#e0a451');for(let j=0;j<5;j++)rect(x+12+j*22,275,12,65,'#172d3e');rect(x+18,228,92,10,'#e7b35c');}
+ // crane/headframes
+ for(let i=0;i<3;i++){let x=((i*440-cam*.65)%1400+1400)%1400-100;rect(x,105,10,220,'#263e4d');rect(x+75,105,10,220,'#263e4d');rect(x-12,102,110,9,'#e2a34c');line(x+5,110,x+78,195,'#e2a34c',5);line(x+80,110,x+8,195,'#e2a34c',5);rect(x+25,193,40,4,'#f4cb78')}
+ // terrain
+ rect(0,FLOOR,W,H-FLOOR,'#40352e');rect(0,FLOOR,W,13,'#9c7448');rect(0,FLOOR+13,W,8,'#304d34');
+ for(let x=0;x<W;x+=54){rect(x,FLOOR+25,48,5,'#71533b');rect(x+14,FLOOR+43,5,15,'#8e6748')}
+ // distant trees
+ for(let i=0;i<10;i++){let x=((i*132-cam*.9)%1120+1120)%1120-60;rect(x+16,300,9,75,'#49392b');ctx.fillStyle='#1b633d';ctx.beginPath();ctx.arc(x+20,292,30,0,Math.PI*2);ctx.fill()}
+}
+function drawHero(){
+ let x=hero.x-cam,y=hero.y;
+ if(hero.inv>0&&tick%7<3)return;
+ ctx.fillStyle='#0005';ctx.beginPath();ctx.ellipse(x+27,FLOOR+2,32,7,0,0,Math.PI*2);ctx.fill();
+ let im=(keys.KeyX||keys.Enter)?document.getElementById('heroShoot'):document.getElementById('heroRun');
+ if(im&&im.complete&&im.naturalWidth){
+   ctx.save();
+   if(hero.face<0){ctx.translate(x+70,0);ctx.scale(-1,1);ctx.drawImage(im,0,y-9,88,106);}
+   else ctx.drawImage(im,x-16,y-9,88,106);
+   ctx.restore();
+ }else{
+   rect(x+8,y+22,34,35,'#a9e94f');rect(x+11,y,28,25,'#8b4b2d');rect(x+6,y+54,16,27,'#124ca7');rect(x+28,y+54,16,27,'#124ca7');
+ }
+}function drawDog(){
+ let x=hero.x-cam-62,y=FLOOR-77+Math.sin(tick*.22)*2;
+ let im=document.getElementById('orionSprite');
+ if(im&&im.complete&&im.naturalWidth)ctx.drawImage(im,x,y,82,72);
+ else{ctx.fillStyle='#b97837';ctx.beginPath();ctx.ellipse(x+35,y+42,29,16,0,0,Math.PI*2);ctx.fill()}
+}function spawnEnemy(){let type=Math.random()<.35?'drone':Math.random()<.5?'scout':'bot';enemies.push({x:cam+W+rand(30,150),y:type==='drone'?FLOOR-140:FLOOR-62,w:type==='drone'?40:42,h:type==='drone'?35:58,hp:type==='bot'?3:2,speed:rand(1.1,2.1)+zone*.15,type,shot:rand(60,120),phase:rand(0,6)});spawnTick=tick}
+function shoot(){if(hero.cool>0)return;shots.push({x:hero.x+hero.face*49,y:hero.y+39,vx:hero.face*13,life:90,damage:1});hero.cool=9;snd(220,.045,'sawtooth',.018)}
+function grenade(){if(hero.gren<=0)return;hero.gren--;grenades.push({x:hero.x+25,y:hero.y+35,vx:hero.face*5,vy:-7,life:68});snd(120,.12,'triangle',.04)}
+function damage(){if(hero.inv>0)return;hero.hp--;hero.inv=80;shake=9;burst(hero.x+20,hero.y+35,'#ff6954');snd(95,.18,'sawtooth',.05);if(hero.hp<=0)end(false)}
+function makeBoss(){boss={x:cam+W-130,y:FLOOR-130,w:104,h:130,hp:26+zone*5,max:26+zone*5,shot:65,phase:0};}
+function update(){
+ tick++;if(keys.KeyP||keys.Escape){keys.KeyP=false;keys.Escape=false;state=state==='paused'?'play':'paused';return}
+ if(state!=='play')return;
+ let left=keys.ArrowLeft||keys.KeyA,right=keys.ArrowRight||keys.KeyD;
+ hero.vx=(right?4.3:0)-(left?4.3:0);if(hero.vx)hero.face=Math.sign(hero.vx);
+ if((keys.Space||keys.ArrowUp||keys.KeyW)&&hero.ground){hero.vy=-12.5;hero.ground=false;snd(320,.08,'triangle')}
+ if(keys.KeyX||keys.Enter)shoot();if(keys.KeyC){keys.KeyC=false;grenade()}
+ if(keys.ShiftLeft&&hero.dash<=0){hero.dash=25;hero.inv=Math.max(hero.inv,25)}
+ if(hero.dash>0){hero.x+=hero.face*7;hero.dash--}
+ hero.x=clamp(hero.x+hero.vx,cam+60,cam+430);hero.y+=hero.vy;hero.vy+=.58;if(hero.y+hero.h>=FLOOR){hero.y=FLOOR-hero.h;hero.vy=0;hero.ground=true}
+ if(hero.cool>0)hero.cool--;if(hero.inv>0)hero.inv--;hero.anim+=Math.abs(hero.vx)*.08;
+ cam+=1.65+zone*.12;
+ if(tick-spawnTick>90&&!boss)spawnEnemy();
+ if(!boss&&score-zoneStartScore>=650&&enemies.length<2)makeBoss();
+ shots.forEach(s=>{s.x+=s.vx;s.life--});shots=shots.filter(s=>s.life>0&&s.x>cam-20&&s.x<cam+W+20);
+ enemies.forEach(e=>{e.x-=e.speed;e.phase+=.09;if(e.type==='drone')e.y=FLOOR-145+Math.sin(e.phase)*20;e.shot--;if(e.shot<=0){enemyShots.push({x:e.x,y:e.y+e.h*.55,vx:-4.4-zone*.2,life:180});e.shot=rand(100,155)}});
+ for(let i=enemies.length-1;i>=0;i--){let e=enemies[i];for(let j=shots.length-1;j>=0;j--){let s=shots[j];if(s.x>e.x&&s.x<e.x+e.w&&s.y>e.y&&s.y<e.y+e.h){shots.splice(j,1);e.hp--;burst(s.x,s.y,'#ffd44c',5);if(e.hp<=0){score+=100;items.push({x:e.x,y:e.y,kind:Math.random()<.18?'med':'coin',life:450});burst(e.x,e.y);enemies.splice(i,1)}break}}if(e.x<cam-70)enemies.splice(i,1);if(e.x<hero.x+hero.w&&e.x+e.w>hero.x&&e.y<hero.y+hero.h&&e.y+e.h>hero.y)damage()}
+ enemyShots.forEach(s=>{s.x+=s.vx;s.life--});for(let i=enemyShots.length-1;i>=0;i--){let s=enemyShots[i];if(s.x<hero.x+hero.w&&s.x>hero.x&&s.y>hero.y&&s.y<hero.y+hero.h){enemyShots.splice(i,1);damage()}else if(s.life<=0)enemyShots.splice(i,1)}
+ grenades.forEach(g=>{g.x+=g.vx;g.y+=g.vy;g.vy+=.35;g.life--;if(g.y>FLOOR-12){g.y=FLOOR-12;g.vy*=-.45}});for(let i=grenades.length-1;i>=0;i--){let b=grenades[i];if(b.life<=0){burst(b.x,b.y,'#ff9a22',30);for(let j=enemies.length-1;j>=0;j--)if(Math.abs(enemies[j].x-b.x)<115){score+=100;enemies.splice(j,1)}if(boss&&Math.abs(boss.x-b.x)<150)boss.hp-=8;grenades.splice(i,1)}}
+ if(boss){boss.x=Math.max(cam+W-240,boss.x-1.0);boss.phase+=.04;boss.shot--;if(boss.shot<=0){enemyShots.push({x:boss.x,y:boss.y+60+Math.sin(boss.phase)*25,vx:-5.6,life:190});boss.shot=52}for(let j=shots.length-1;j>=0;j--){let s=shots[j];if(s.x>boss.x&&s.x<boss.x+boss.w&&s.y>boss.y&&s.y<boss.y+boss.h){shots.splice(j,1);boss.hp--;burst(s.x,s.y,'#ff5d42',7);if(boss.hp<=0){score+=1200;coins+=15;burst(boss.x,boss.y,'#ffe15b',40);boss=null;zone++;zoneStartScore=score;if(zone>5){end(true);return}else{hero.hp=Math.min(hero.maxHp,hero.hp+2);hero.gren+=2;enemies=[];enemyShots=[];items.push({x:hero.x+170,y:FLOOR-70,kind:'med',life:300});text('ZONE SUIVANTE !',W/2,170,34,'#ffe45d','center');snd(660,.3,'triangle',.06)}}break}}if(boss&&hero.x+hero.w>boss.x&&hero.x<boss.x+boss.w&&hero.y+hero.h>boss.y)damage()}
+ items.forEach(o=>{o.x-=1.5;o.life--;if(Math.abs(o.x-hero.x)<38&&Math.abs(o.y-hero.y)<95){if(o.kind==='med')hero.hp=Math.min(hero.maxHp,hero.hp+2);else{coins++;score+=50}o.life=0;snd(760,.08,'sine')}});items=items.filter(o=>o.life>0);
+ for(let i=particles.length-1;i>=0;i--){let p=particles[i];p.x+=p.vx;p.y+=p.vy;p.vy+=.16;p.life--;if(p.life<=0)particles.splice(i,1)}
+ shake=Math.max(0,shake-.5);
+}
+function drawEnemy(e){
+ let x=e.x-cam,y=e.y;
+ if(e.type==='drone'){rect(x+5,y+9,30,18,'#657b8b');rect(x,y+15,9,5,'#ff5a39');rect(x+31,y+15,9,5,'#ff5a39');rect(x+14,y+3,12,8,'#c9e8f3');rect(x+16,y+12,8,5,'#ff302e')}
+ else{
+   let im=document.getElementById('enemySprite');
+   if(im&&im.complete&&im.naturalWidth)ctx.drawImage(im,x-12,y-22,68,82);
+   else{rect(x+7,y+14,28,27,'#526b42');rect(x+9,y,24,19,'#b7c5cf');rect(x+12,y+6,6,5,'#ff352f');rect(x+25,y+6,6,5,'#ff352f')}
+ }
+}function drawBoss(){if(!boss)return;let x=boss.x-cam,y=boss.y;rect(x+10,y+22,84,85,'#243b56');rect(x+18,y+7,68,36,'#687e91');rect(x+25,y+19,14,9,'#ff392f');rect(x+64,y+19,14,9,'#ff392f');rect(x+3,y+43,15,48,'#324f6e');rect(x+85,y+43,15,48,'#324f6e');rect(x+22,y+102,20,28,'#19283c');rect(x+66,y+102,20,28,'#19283c');rect(x+41,y+48,22,36,'#e34d2d');text('BOSS',x+52,y-9,15,'#ff514b','center');rect(630,83,270,13,'#2a111c');rect(633,86,264*(boss.hp/boss.max),7,'#f33');}
+function hud(){rect(12,12,280,82,'#04172dc9');ctx.strokeStyle='#54caff';ctx.lineWidth=2;ctx.strokeRect(12,12,280,82);ctx.save();ctx.beginPath();ctx.arc(48,49,28,0,Math.PI*2);ctx.clip();let im=document.getElementById('portrait');if(im&&im.complete&&im.naturalWidth)ctx.drawImage(im,20,21,56,56);else{ctx.fillStyle='#a9e94f';ctx.fillRect(20,21,56,56)}ctx.restore();text('MAGNUS NSAKA',88,36,17,'#fff');text('ZONE '+zone+' / 5',88,58,14,'#ffdf55');for(let i=0;i<hero.maxHp;i++){rect(88+i*21,68,16,10,i<hero.hp?'#ed3345':'#46515f')}text('SCORE '+String(score).padStart(7,'0'),18,119,17,'#ffdf55');text('★ '+coins+'     BOMBE '+hero.gren,18,143,14);text('RECORD '+Math.max(high,score),W-18,35,15,'#fff','right');text(zones[zone-1]?.[0]||'VICTOIRE',W-18,58,14,'#ffdf55','right')}
+function draw(){
+ ctx.save();if(shake)ctx.translate(rand(-shake,shake),rand(-shake,shake));bg();
+ items.forEach(o=>{let x=o.x-cam,y=o.y;if(o.kind==='med'){rect(x,y,25,24,'#f4f4e9');rect(x+10,y+4,5,16,'#e33');rect(x+5,y+9,15,5,'#e33')}else{text('★',x,y,25,'#ffdf4e','center')}});
+ enemies.forEach(drawEnemy);drawBoss();drawDog();drawHero();
+ shots.forEach(s=>{rect(s.x-cam,s.y,22,5,'#fff27a');rect(s.x-cam+13,s.y-2,9,9,'#55eaff')});enemyShots.forEach(s=>rect(s.x-cam,s.y,13,6,'#ff6046'));
+ grenades.forEach(b=>{ctx.fillStyle='#4c9d54';ctx.beginPath();ctx.arc(b.x-cam,b.y,8,0,Math.PI*2);ctx.fill();rect(b.x-cam-3,b.y-12,7,4,'#d6b76b')});
+ particles.forEach(p=>rect(p.x-cam,p.y,p.size,p.size,p.col));ctx.restore();hud();
+ if(state==='paused'){rect(0,0,W,H,'#06152dcc');text('PAUSE',W/2,250,54,'#ffe05a','center');text('Appuie sur P pour reprendre',W/2,290,20,'#fff','center')}
+}
+function end(win){state='end';high=Math.max(high,score);localStorage.setItem('mn_high',String(high));overlay.style.display='grid';overlay.innerHTML=`<div class="panel"><img class="logo" src="./assets/logo-magnus.png"><h1 style="color:${win?'#ffe05a':'#ff6958'}">${win?'MISSION ACCOMPLIE !':'GAME OVER'}</h1><p>Score : <b>${score}</b> · Pièces : <b>${coins}</b> · Record : <b>${high}</b></p><button class="btn" id="again">REJOUER</button></div>`;document.getElementById('again').onclick=start}
+function start(){init();state='play';overlay.style.display='none';loop()}
+function loop(){if(state==='menu'||state==='end')return;if(state==='play')update();draw();requestAnimationFrame(loop)}
+document.getElementById('start').onclick=start;document.getElementById('how').onclick=()=>{let e=document.getElementById('extra');e.style.display=e.style.display==='none'?'block':'none'};
+window.addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Space'].includes(e.code))e.preventDefault();keys[e.code]=true;if(e.code==='KeyP'&&state==='play'){state='paused'}else if(e.code==='KeyP'&&state==='paused'){state='play'}});
+window.addEventListener('keyup',e=>keys[e.code]=false);
+document.querySelectorAll('[data-key]').forEach(b=>{let k=b.dataset.key;let down=e=>{e.preventDefault();keys[k]=true},up=e=>{e.preventDefault();keys[k]=false};b.addEventListener('pointerdown',down);b.addEventListener('pointerup',up);b.addEventListener('pointerleave',up);b.addEventListener('pointercancel',up)});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&state==='play')state='paused'});
+init();draw();
+})();
+</script>
+<img id="portrait" src="./assets/magnus-portrait.png" hidden>
+<img id="heroRun" src="./assets/magnus-run.png" hidden>
+<img id="heroShoot" src="./assets/magnus-shoot.png" hidden>
+<img id="enemySprite" src="./assets/enemy-soldier.png" hidden>
+<img id="orionSprite" src="./assets/orion-dog.png" hidden>
+<script>if('serviceWorker' in navigator && location.protocol.startsWith('http')){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));}</script></body></html>

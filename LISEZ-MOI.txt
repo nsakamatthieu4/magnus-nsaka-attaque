@@ -1,0 +1,33 @@
+# MAGNUS NSAKA ATTAQUE — Pack Android/PWA
+
+## Contenu
+- `index.html` : jeu arcade 2D jouable.
+- `manifest.webmanifest` : identité de l'application installable.
+- `sw.js` : cache hors connexion.
+- `assets/` : logo original, visuel promotionnel, portrait de référence et icônes.
+
+## Jouer immédiatement
+Ouvrir `index.html` dans un navigateur moderne. Sur Android, le mode paysage est recommandé.
+
+## Publier sur GitHub Pages
+1. Créer un dépôt public nommé `magnus-nsaka-attaque`.
+2. Envoyer le CONTENU de ce dossier à la racine du dépôt (index.html doit être à la racine).
+3. Settings > Pages > Deploy from a branch > `main` > `/ (root)` > Save.
+4. Attendre la publication HTTPS.
+
+## Installer comme application sur Android
+Ouvrir l'URL GitHub Pages dans Chrome Android. Après publication HTTPS, utiliser le menu Chrome > Installer l'application / Ajouter à l'écran d'accueil.
+
+## Générer un APK natif
+Le dossier est un package PWA prêt à être analysé par https://www.pwabuilder.com/.
+Saisir l'URL HTTPS publiée, analyser, puis choisir Android / Generate Package.
+La génération et la signature de l'APK se font dans PWABuilder. Ce ZIP ne contient pas un APK précompilé.
+
+## Commandes
+Clavier : flèches ou A/D, Espace ou flèche haut pour sauter, X pour tirer, C pour grenade, P pour pause.
+Android : commandes tactiles sous le jeu. Tourner le téléphone en paysage.
+
+## Notes
+- Les adversaires et boss sont des personnages fictifs.
+- Le jeu sauvegarde le meilleur score localement sur l'appareil.
+- Pour une publication commerciale, vérifier les droits sur les éléments de marque et les contenus ajoutés.

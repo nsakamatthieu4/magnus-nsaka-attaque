@@ -1,0 +1,25 @@
+{
+  "name": "MAGNUS NSAKA ATTAQUE",
+  "short_name": "MAGNUS",
+  "description": "Jeu d'arcade 2D — Le héros du Lualaba",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#07152f",
+  "theme_color": "#07152f",
+  "icons": [
+    {
+      "src": "./assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
